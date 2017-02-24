@@ -7,6 +7,7 @@ import com.aevobits.games.crazyeights.entity.Card;
 import com.aevobits.games.crazyeights.entity.SuitIcon;
 import com.aevobits.games.crazyeights.manager.ComputerPlayerManager;
 import com.aevobits.games.crazyeights.manager.GameManager;
+import com.aevobits.games.crazyeights.manager.GameMultiplayerManager;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
 import com.badlogic.gdx.graphics.Color;
@@ -21,6 +22,7 @@ import com.badlogic.gdx.scenes.scene2d.ui.Table;
 import com.badlogic.gdx.scenes.scene2d.ui.TextButton;
 import com.badlogic.gdx.scenes.scene2d.utils.Drawable;
 import com.badlogic.gdx.utils.Align;
+import com.badlogic.gdx.utils.StringBuilder;
 
 import static com.badlogic.gdx.scenes.scene2d.actions.Actions.run;
 
@@ -28,11 +30,10 @@ import static com.badlogic.gdx.scenes.scene2d.actions.Actions.run;
  * Created by vito on 12/11/16.
  */
 
-public class GameScreen extends BaseScreen {
+public class GameMultiplayerScreen extends BaseScreen {
 
     private BaseActor background;
-    private GameManager gameManager;
-    private ComputerPlayerManager computerPlayer;
+    private GameMultiplayerManager gameManager;
     public Label playerLabel;
     public Label computerLabel;
     public Label playerScoreLabel;
@@ -50,10 +51,9 @@ public class GameScreen extends BaseScreen {
     public final int mapWidth = 480;
     public final int mapHeight = 800;
 
-    private float hintTimer;
+    public GameMultiplayerScreen(BaseGame g, String message){
+        super(g, message);
 
-    public GameScreen(BaseGame g){
-        super(g);
     }
 
     @Override
@@ -92,8 +92,15 @@ public class GameScreen extends BaseScreen {
                         mainStage.addActor(gameManager.suitGroup);
                         chooseSuit.setVisible(false);
                         gameManager.chooseSuitRunning = false;
+                        String ct = gameManager.messageToSend.substring(gameManager.messageToSend.length() - 1);
+                        if (ct.equals("@")){
+                            gameManager.messageToSend.insert(gameManager.messageToSend.length() -1, "#" + Card.Suit.CLUBS.ordinal());
+                        }else {
+                            gameManager.messageToSend.append("#" + Card.Suit.CLUBS.ordinal());
+                        }
+                        game.playServices.sendReliableMessage(gameManager.messageToSend.toString());
                         if (gameManager.getTopOfDiscard().rank == Card.Rank.FOUR) {
-                            gameManager.drawCardToComputer(gameManager.oppHand, gameManager.cardsToDrawRankFour);
+                            gameManager.drawCardToComputer(gameManager.cardsToDrawRankFour);
                             gameManager.cardsToDrawRankFour = 0;
                         }
                     }
@@ -115,8 +122,15 @@ public class GameScreen extends BaseScreen {
                 mainStage.addActor(gameManager.suitGroup);
                 chooseSuit.setVisible(false);
                 gameManager.chooseSuitRunning = false;
+                String ct = gameManager.messageToSend.substring(gameManager.messageToSend.length() - 1);
+                if (ct.equals("@")){
+                    gameManager.messageToSend.insert(gameManager.messageToSend.length() -1, "#" + Card.Suit.HEARTS.ordinal());
+                }else {
+                    gameManager.messageToSend.append("#" + Card.Suit.HEARTS.ordinal());
+                }
+                game.playServices.sendReliableMessage(gameManager.messageToSend.toString());
                 if (gameManager.getTopOfDiscard().rank == Card.Rank.FOUR) {
-                    gameManager.drawCardToComputer(gameManager.oppHand, gameManager.cardsToDrawRankFour);
+                    gameManager.drawCardToComputer(gameManager.cardsToDrawRankFour);
                     gameManager.cardsToDrawRankFour = 0;
                 }
             }
@@ -138,8 +152,15 @@ public class GameScreen extends BaseScreen {
                 mainStage.addActor(gameManager.suitGroup);
                 chooseSuit.setVisible(false);
                 gameManager.chooseSuitRunning = false;
+                String ct = gameManager.messageToSend.substring(gameManager.messageToSend.length() - 1);
+                if (ct.equals("@")){
+                    gameManager.messageToSend.insert(gameManager.messageToSend.length() -1, "#" + Card.Suit.SPADES.ordinal());
+                }else {
+                    gameManager.messageToSend.append("#" + Card.Suit.SPADES.ordinal());
+                }
+                game.playServices.sendReliableMessage(gameManager.messageToSend.toString());
                 if (gameManager.getTopOfDiscard().rank == Card.Rank.FOUR) {
-                    gameManager.drawCardToComputer(gameManager.oppHand, gameManager.cardsToDrawRankFour);
+                    gameManager.drawCardToComputer(gameManager.cardsToDrawRankFour);
                     gameManager.cardsToDrawRankFour = 0;
                 }
             }
@@ -161,8 +182,15 @@ public class GameScreen extends BaseScreen {
                 mainStage.addActor(gameManager.suitGroup);
                 chooseSuit.setVisible(false);
                 gameManager.chooseSuitRunning = false;
+                String ct = gameManager.messageToSend.substring(gameManager.messageToSend.length() - 1);
+                if (ct.equals("@")){
+                    gameManager.messageToSend.insert(gameManager.messageToSend.length() -1, "#" + Card.Suit.DIAMONDS.ordinal());
+                }else {
+                    gameManager.messageToSend.append("#" + Card.Suit.DIAMONDS.ordinal());
+                }
+                game.playServices.sendReliableMessage(gameManager.messageToSend.toString());
                 if (gameManager.getTopOfDiscard().rank == Card.Rank.FOUR) {
-                    gameManager.drawCardToComputer(gameManager.oppHand, gameManager.cardsToDrawRankFour);
+                    gameManager.drawCardToComputer(gameManager.cardsToDrawRankFour);
                     gameManager.cardsToDrawRankFour = 0;
                 }
             }
@@ -189,10 +217,9 @@ public class GameScreen extends BaseScreen {
         chooseSuit.setVisible(false);
         //chooseSuit.setDebug(true);
 
-        gameManager = new GameManager(this);
+        gameManager = new GameMultiplayerManager(this);
         gameManager.startGame();
         gameManager.drawTable();
-        computerPlayer = new ComputerPlayerManager(gameManager);
 
 
         playerLabel	= new Label("Player", game.defaultSkin, "collegia15");
@@ -213,11 +240,11 @@ public class GameScreen extends BaseScreen {
         BaseActor computerNPoints = playerNPoints.clone();
 
         BaseActor facePlayer = new BaseActor();
-        int faceNumber = (int)GameUtils.randomFloatInRange(1, 6);
+        int faceNumber = (int)GameUtils.randomFloatInRange(1, 3);
         facePlayer.setTexture(new Texture(Gdx.files.internal("faces/" + faceNumber + ".png")) );
         int newFaceNumber = faceNumber;
         while (newFaceNumber == faceNumber){
-            newFaceNumber = (int)GameUtils.randomFloatInRange(1, 6);
+            newFaceNumber = (int)GameUtils.randomFloatInRange(1, 3);
         }
         BaseActor faceComputer = new BaseActor();
         faceComputer.setTexture(new Texture(Gdx.files.internal("faces/" + newFaceNumber + ".png")) );
@@ -286,13 +313,16 @@ public class GameScreen extends BaseScreen {
 
         startHand();
 
-        hintTimer = 0;
-
         switch(Gdx.app.getType()) {
             case Android:
+                if(messageReceived.isEmpty()) {
+                    game.playServices.sendReliableMessage(gameManager.createMessage());
+                }else {
+                    messageReceived.remove();
+                }
                 //game.actionResolver.showToast("Ciao come stai?");
                 Gdx.app.log("GameScreen", "isSignedIn: " + game.playServices.isSignedIn() + ".");
-                //game.playServices.recordVideo();
+
             case Desktop:
                 // desktop specific code
             case WebGL:
@@ -302,13 +332,12 @@ public class GameScreen extends BaseScreen {
 
     @Override
     public void update(float dt) {
-        if(gameManager.chooseSuitRunning) Gdx.app.log("chooseSuitRunning: ","" + gameManager.chooseSuitRunning);
         if ((BaseActor.stackActions<=0) && (!gameManager.chooseSuitRunning)){
             if (!gameManager.isGameOver()) {
                 changePlayLabel();
                 if (gameManager.isPlayerTurn() && (!gameManager.hasValidMove(gameManager.getPlayerHand()))) {
                     gameManager.drawCardToPlayer(1);
-                } else if (!gameManager.isPlayerTurn()) {
+                } else if ((!gameManager.isPlayerTurn()) && (!messageReceived.isEmpty())) {
                     gameManager.runComputerTurn();
                 }
                 deckCountLabel.setText(String.valueOf(gameManager.deck.size()));
@@ -321,7 +350,6 @@ public class GameScreen extends BaseScreen {
                 }
             }
         }
-
     }
 
     public void changePlayLabel(){
@@ -357,7 +385,7 @@ public class GameScreen extends BaseScreen {
                         System.out.println("Chosen: " + object);
                         if (object.equals(true)){
                             gameManager.playerData.resetGameData();
-                            game.setScreen(new GameScreen(game));
+                            game.setScreen(new GameMultiplayerScreen(game, ""));
                         }else {
                             Gdx.app.exit();
                         }
@@ -388,7 +416,6 @@ public class GameScreen extends BaseScreen {
     }
 
     private void showWinnerHand(){
-
         isShowedWinDialog = true;
 
         Drawable background = game.skin.newDrawable("white", new Color(0,0,0,0.7f));
@@ -447,14 +474,7 @@ public class GameScreen extends BaseScreen {
                 run(new Runnable(){
                         @Override
                         public void run() {
-                            switch(Gdx.app.getType()) {
-                                case Android:
-                                    game.playServices.showOrLoadInterstital();
-                                case Desktop:
-                                    game.setScreen(new GameScreen(game));
-                                case WebGL:
-                                    /// HTML5 specific code
-                            }
+                            game.setScreen(new GameMultiplayerScreen(game, ""));
                         }
                     }
                 )
@@ -482,5 +502,9 @@ public class GameScreen extends BaseScreen {
                 Actions.moveTo(-350f, (mapHeight / 2) + 50f, 0.5f)
         ));
         uiStage.addActor(overText);
+    }
+
+    public void updateMessage(String message){
+        this.messageReceived.add(message);
     }
 }

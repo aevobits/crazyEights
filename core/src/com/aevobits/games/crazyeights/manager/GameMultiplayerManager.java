@@ -8,7 +8,7 @@ import com.aevobits.games.crazyeights.entity.Card.Suit;
 import com.aevobits.games.crazyeights.entity.CardBack;
 import com.aevobits.games.crazyeights.entity.CardBackAnimated;
 import com.aevobits.games.crazyeights.entity.SuitIcon;
-import com.aevobits.games.crazyeights.screen.GameScreen;
+import com.aevobits.games.crazyeights.screen.GameMultiplayerScreen;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.math.Interpolation;
 import com.badlogic.gdx.math.MathUtils;
@@ -17,17 +17,19 @@ import com.badlogic.gdx.scenes.scene2d.Group;
 import com.badlogic.gdx.scenes.scene2d.InputEvent;
 import com.badlogic.gdx.scenes.scene2d.InputListener;
 import com.badlogic.gdx.scenes.scene2d.actions.Actions;
+import com.badlogic.gdx.utils.StringBuilder;
 
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Random;
+
 import static com.badlogic.gdx.scenes.scene2d.actions.Actions.run;
 
 /**
  * Created by vito on 15/11/16.
  */
 
-public class GameManager {
+public class GameMultiplayerManager {
     public List<Card> deck;
     public List<Card> playerHand;
     public List<Card> oppHand;
@@ -39,10 +41,10 @@ public class GameManager {
     public Group suitGroup;
 
     final CardBack cardBack = new CardBack();
-    private Card.Suit wildSuit = null;
+    private Suit wildSuit = null;
 
-    private GameScreen gameScreen;
-    private ComputerPlayerManager computerPlayer;
+    private GameMultiplayerScreen gameMultiplayerScreen;
+    private ComputerMultiplayerManager computerPlayer;
     public PlayerDataManager playerData;
     private InputListener cardListner;
 
@@ -54,16 +56,24 @@ public class GameManager {
     private final float topDiscardX;
     private final float topDiscardY;
     private float initCard;
-    private float initCardY;
     private float distanceCardX;
     private float cardWidth = 110;
     private float cardHeight = 160;
 
     public int cardsToDrawRankTwo;
     public int cardsToDrawRankFour;
+    private String action="";
+    private boolean isChangedTurn;
+    public StringBuilder messageToSend;
 
-    public GameManager(GameScreen gameScreen) {
-        deck = CardManager.getShuffledDeck();
+    public GameMultiplayerManager(GameMultiplayerScreen gameMultiplayerScreen) {
+        this.gameMultiplayerScreen = gameMultiplayerScreen;
+        if(this.gameMultiplayerScreen.messageReceived.isEmpty()) {
+            deck = CardManager.getShuffledDeck();
+        }else{
+            deck = new LinkedList<Card>();
+        }
+
         playerHand = new LinkedList<Card>();
         oppHand = new LinkedList<Card>();
         discardPile = new LinkedList<Card>();
@@ -71,18 +81,17 @@ public class GameManager {
         oppHandGroup = new Group();
         discadPileGroup = new Group();
         suitGroup = new Group();
-        computerPlayer = new ComputerPlayerManager(this);
+        computerPlayer = new ComputerMultiplayerManager();
         playerData = PlayerDataManager.getInstance();
-        this.gameScreen = gameScreen;
-        perHand = 3;
+        perHand = 8;
         cardsToDrawRankTwo = 0;
         cardsToDrawRankFour = 0;
         chooseSuitRunning = false;
         darkInvalidMoves = playerData.isDarkInvalidMoves();
-        topDiscardX = (gameScreen.mapWidth / 2) - (cardWidth * 3 / 2);
-        topDiscardY = gameScreen.mapHeight / 2;
-        initCard = gameScreen.mapWidth * 0.1f;
-        distanceCardX = (gameScreen.mapWidth * 0.8f) / perHand;
+        topDiscardX = (gameMultiplayerScreen.mapWidth / 2) - (cardWidth * 3 / 2);
+        topDiscardY = gameMultiplayerScreen.mapHeight / 2;
+        initCard = gameMultiplayerScreen.mapWidth * 0.1f;
+        distanceCardX = (gameMultiplayerScreen.mapWidth * 0.8f) / perHand;
     }
 
     /**
@@ -91,32 +100,62 @@ public class GameManager {
      * Also sets the playerTurn boolean to a random value
      */
     public void startGame(){
-        CardManager.reshuffle(deck, playerHand, oppHand, discardPile);
-        //CardManager.deal(deck, perHand, playerHand, oppHand);
-        CardManager.dealDebug(deck, playerHand, oppHand);
+        if(this.gameMultiplayerScreen.messageReceived.isEmpty()) {
+            CardManager.reshuffle(deck, playerHand, oppHand, discardPile);
+            CardManager.deal(deck, perHand, playerHand, oppHand);
+            //CardManager.dealDebug(deck, playerHand, oppHand);
 
-        CardManager.draw(deck, discardPile);
-        //Make sure we don't start with an 8
-        while((getTopOfDiscard().rank == Card.Rank.EIGHT) || (getTopOfDiscard().rank == Card.Rank.FOUR) || getTopOfDiscard().rank == Rank.TWO){
             CardManager.draw(deck, discardPile);
-        }
-        if (playerData.getRound()==1){
-            playerData.setPlayerStartTurn(new Random().nextBoolean());
-        }else {
-            playerData.setPlayerStartTurn(!playerData.isPlayerStartTurn());
-        }
-        //playerTurn = playerData.isPlayerStartTurn();
-        playerTurn = false;
-        Gdx.app.log("Start playing:", (isPlayerTurn()?"Player ":" Computer "));
-        if (getTopOfDiscard().rank == Rank.QUEEN){
-            changeTurn();
-            Gdx.app.log("Start playing:", (isPlayerTurn()?"Player ":" Computer "));
+            //Make sure we don't start with an 8
+            while ((getTopOfDiscard().rank == Rank.EIGHT) || (getTopOfDiscard().rank == Rank.FOUR) || getTopOfDiscard().rank == Rank.TWO) {
+                CardManager.draw(deck, discardPile);
+            }
+            if (playerData.getRound() == 1) {
+                playerData.setPlayerStartTurn(new Random().nextBoolean());
+            } else {
+                playerData.setPlayerStartTurn(!playerData.isPlayerStartTurn());
+            }
+            //for debug purpose
+            //playerTurn = true;
+            playerTurn = playerData.isPlayerStartTurn();
+            Gdx.app.log("Start playing:", (isPlayerTurn() ? "Player " : " Computer "));
+        }else{
+            String mr = this.gameMultiplayerScreen.messageReceived.element();
+            String[] token = mr.split("#");
+
+            playerTurn = !token[0].equals("*P");
+
+            String[] oppToken = token[1].split(";");
+            String[] playerToken = token[2].split(";");
+            String[] deckToken = token[3].split(";");
+            String[] discardToken = token[4].split(";");
+
+            for (String card:oppToken){
+                String[] cardsToken = card.split(",");
+                oppHand.add(new Card(Suit.values()[Integer.valueOf(cardsToken[0])], Rank.values()[Integer.valueOf(cardsToken[1])]));
+            }
+
+            for (String card:playerToken){
+                String[] cardsToken = card.split(",");
+                playerHand.add(new Card(Suit.values()[Integer.valueOf(cardsToken[0])], Rank.values()[Integer.valueOf(cardsToken[1])]));
+            }
+
+            for (String card:deckToken){
+                String[] cardsToken = card.split(",");
+                deck.add(new Card(Suit.values()[Integer.valueOf(cardsToken[0])], Rank.values()[Integer.valueOf(cardsToken[1])]));
+            }
+
+            for (String card:discardToken){
+                String[] cardsToken = card.split(",");
+                discardPile.add(new Card(Suit.values()[Integer.valueOf(cardsToken[0])], Rank.values()[Integer.valueOf(cardsToken[1])]));
+            }
+
         }
     }
 
     public void drawTable(){
         Card discardCard = getTopOfDiscard();
-        discardCard.createGraphicCard(cardWidth, cardHeight, gameScreen.mapWidth / 2, gameScreen.mapHeight / 2, "front");
+        discardCard.createGraphicCard(cardWidth, cardHeight, gameMultiplayerScreen.mapWidth / 2, gameMultiplayerScreen.mapHeight / 2, "front");
         discardCard.addActionBase(Actions.sequence(
                 Actions.delay((float) perHand + 3f),
                 Actions.moveTo(topDiscardX, topDiscardY, 0.5f, Interpolation.exp10),
@@ -131,24 +170,24 @@ public class GameManager {
                 )
         ));
         discadPileGroup.addActor(discardCard);
-        this.gameScreen.mainStage.addActor(discadPileGroup);
+        this.gameMultiplayerScreen.mainStage.addActor(discadPileGroup);
 
-        cardBack.createGraphicCard(cardWidth, cardHeight, gameScreen.mapWidth / 2, gameScreen.mapHeight / 2);
+        cardBack.createGraphicCard(cardWidth, cardHeight, gameMultiplayerScreen.mapWidth / 2, gameMultiplayerScreen.mapHeight / 2);
         cardBack.setZIndex(1000);
-        this.gameScreen.mainStage.addActor(cardBack);
+        this.gameMultiplayerScreen.mainStage.addActor(cardBack);
 
         float initCardX = initCard + (distanceCardX / 2) - (cardWidth / 2);
         float delay = 2.5f;
         CardBackAnimated cardBackAnimated = new CardBackAnimated();
         for (int i = 0; i < perHand; i++) {
-            //cardBackAnimated.createGraphicCard(cardWidth, cardHeight, gameScreen.mapWidth / 2, gameScreen.mapHeight / 2);
+            //cardBackAnimated.createGraphicCard(cardWidth, cardHeight, gameMultiplayerScreen.mapWidth / 2, gameMultiplayerScreen.mapHeight / 2);
             //cardBackAnimated.setZIndex(1001);
             //cardBackAnimated.animateCard();
             //cardBackAnimated.setActiveAnimation("flip");
             //cardBackAnimated.addActionBase(Actions.delay(delay+=0.4f));
 
             final Card card = playerHand.get(i);
-            card.createGraphicCard(cardWidth, cardHeight, gameScreen.mapWidth / 2, gameScreen.mapHeight / 2, "back");
+            card.createGraphicCard(cardWidth, cardHeight, gameMultiplayerScreen.mapWidth / 2, gameMultiplayerScreen.mapHeight / 2, "back");
             card.addActionBase(Actions.sequence(
                             Actions.delay(delay+=0.5f),
                             Actions.moveTo(initCardX, 70f, 0.5f, Interpolation.exp10),
@@ -182,8 +221,8 @@ public class GameManager {
                 public void touchDragged(InputEvent event, float x, float y, int pointer){
                     Card card = (Card) event.getTarget();
                     card.moveBy((x - card.offsetX) * 1f, (y - card.offsetY) * 1.5f);
-                    card.setX(MathUtils.clamp(card.getX(), 0, gameScreen.mapWidth - card.getWidth()));
-                    card.setY(MathUtils.clamp(card.getY(), 0, gameScreen.mapHeight - card.getHeight()));
+                    card.setX(MathUtils.clamp(card.getX(), 0, gameMultiplayerScreen.mapWidth - card.getWidth()));
+                    card.setY(MathUtils.clamp(card.getY(), 0, gameMultiplayerScreen.mapHeight - card.getHeight()));
                 }
 
                 public void touchUp(InputEvent event, float x, float y, int pointer, int button){
@@ -199,28 +238,41 @@ public class GameManager {
                                         @Override
                                         public void run() {
                                             card.removeListener(cardListner);
-                                            distributeCardsOnTable(playerHandGroup, initCard, gameScreen.mapWidth, cardWidth, darkInvalidMoves);
+                                            distributeCardsOnTable(playerHandGroup, initCard, gameMultiplayerScreen.mapWidth, cardWidth, darkInvalidMoves);
                                             if (card.rank == Rank.EIGHT && !isGameOver()) {
+                                                messageToSend.append("@");
                                                 chooseSuitRunning = true;
-                                                gameScreen.chooseSuit.setVisible(true);
-                                            }
-                                            if (card.rank == Rank.TWO){
+                                                gameMultiplayerScreen.chooseSuit.setVisible(true);
+                                            }else if (card.rank == Rank.TWO){
                                                 cardsToDrawRankTwo += 2;
                                                 if (!hasCardInMoves(oppHand, card) || isGameOver()) {
-                                                    drawCardToComputer(oppHand, cardsToDrawRankTwo);
+                                                    gameMultiplayerScreen.game.playServices.sendReliableMessage(messageToSend.toString());
+                                                    drawCardToComputer(cardsToDrawRankTwo);
                                                     cardsToDrawRankTwo = 0;
+                                                }else {
+                                                    messageToSend.append("@");
+                                                    gameMultiplayerScreen.game.playServices.sendReliableMessage(messageToSend.toString());
                                                 }
                                             }else if (card.rank == Rank.FOUR){
                                                 cardsToDrawRankFour += 4;
                                                 if (!hasCardInMoves(oppHand, card) || isGameOver()) {
                                                     if (!isGameOver()) {
                                                         chooseSuitRunning = true;
-                                                        gameScreen.chooseSuit.setVisible(true);
+                                                        gameMultiplayerScreen.chooseSuit.setVisible(true);
                                                     }else {
-                                                        drawCardToComputer(oppHand, cardsToDrawRankFour);
+                                                        gameMultiplayerScreen.game.playServices.sendReliableMessage(messageToSend.toString());
+                                                        drawCardToComputer(cardsToDrawRankFour);
                                                         cardsToDrawRankFour = 0;
                                                     }
+                                                }else {
+                                                    messageToSend.append("@");
+                                                    gameMultiplayerScreen.game.playServices.sendReliableMessage(messageToSend.toString());
                                                 }
+                                            }else {
+                                                if (card.rank != Rank.QUEEN) {
+                                                    messageToSend.append("@");
+                                                }
+                                                gameMultiplayerScreen.game.playServices.sendReliableMessage(messageToSend.toString());
                                             }
                                         }
                                     }
@@ -236,31 +288,34 @@ public class GameManager {
             //playerHandGroup.addActor(cardBackAnimated);
 
             Card cardOppHand = oppHand.get(i);
-            cardOppHand.createGraphicCard(cardWidth, cardHeight, gameScreen.mapWidth / 2, gameScreen.mapHeight / 2, "back");
+            cardOppHand.createGraphicCard(cardWidth, cardHeight, gameMultiplayerScreen.mapWidth / 2, gameMultiplayerScreen.mapHeight / 2, "back");
             cardOppHand.addActionBase(Actions.sequence(
                     Actions.delay(delay+=0.5f),
-                    Actions.moveTo(initCardX, (gameScreen.mapHeight - cardOppHand.getHeight()) + 60f, 0.5f, Interpolation.exp10)
+                    Actions.moveTo(initCardX, (gameMultiplayerScreen.mapHeight - cardOppHand.getHeight()) + 60f, 0.5f, Interpolation.exp10)
             ));
             oppHandGroup.addActor(cardOppHand);
             Gdx.app.log("card",cardOppHand.suit.name() + " - " + cardOppHand.rank.name());
             initCardX += distanceCardX;
         }
-        this.gameScreen.mainStage.addActor(playerHandGroup);
-        this.gameScreen.mainStage.addActor(oppHandGroup);
-        //this.gameScreen.mainStage.addActor(cardBackAnimated);
+        this.gameMultiplayerScreen.mainStage.addActor(playerHandGroup);
+        this.gameMultiplayerScreen.mainStage.addActor(oppHandGroup);
+        //this.gameMultiplayerScreen.mainStage.addActor(cardBackAnimated);
 
     }
 
     public boolean playCard(List<Card> hand, Card card){
         if(isValidMove(card, hand)){
             Gdx.app.log((isPlayerTurn()?"Player ":" Computer ") + "Play Card: ",card.suit.name() + " " + card.rank.name());
-            logAllCards(hand);
             hand.remove(card);
             discardPile.add(0, card);
             if (getWildSuit() != null){
                 suitGroup.removeActor(suitGroup.getChildren().get(0));
             }
             setWildSuit(null);
+            messageToSend = new StringBuilder("PC1");
+            messageToSend.append("#");
+            messageToSend.append(card.suit.ordinal() + ",");
+            messageToSend.append(card.rank.ordinal());
             if (card.rank != Rank.QUEEN){
                 changeTurn();
             }
@@ -270,15 +325,22 @@ public class GameManager {
         }
     }
 
-    public Card getComputerPlay(){
-        return computerPlayer.selectPlay(oppHand);
+    public Card getComputerPlay(String message){
+        return computerPlayer.selectMultiplayerPlay(oppHand, discardPile, message);
+    }
+
+    public Card getComputerPlay(int idxCard, String message){
+        return computerPlayer.drawMultiplayerPlay(deck, idxCard, message);
     }
 
     public void runComputerTurn(){
-        //Gdx.app.log("runComputerTurn", "");
-        final Card picked = getComputerPlay();
-        if(picked != null){
-            playCard(oppHand, picked);
+        Gdx.app.log("runComputerTurn", "");
+        String tmpMessage = gameMultiplayerScreen.messageReceived.remove();
+        final String message = (tmpMessage.contains("@")?tmpMessage.substring(0,tmpMessage.length() - 1):tmpMessage);
+        isChangedTurn = tmpMessage.contains("@");//(tmpMessage.contains("@")?true:false);
+        action = message.substring(0,4);
+        if(action.equals("PC1#")){
+            final Card picked = getComputerPlay(message);
             for (final Actor actor:oppHandGroup.getChildren()){
                 final Card card = (Card) actor;
                 if (card.suit == picked.suit && card.rank == picked.rank){
@@ -294,37 +356,43 @@ public class GameManager {
                                     @Override
                                     public void run() {
                                         card.createGraphicCard(cardWidth, cardHeight, topDiscardX, topDiscardY, "front");
-                                        distributeCardsOnTable(oppHandGroup, initCard, gameScreen.mapWidth, cardWidth, false);
+                                        distributeCardsOnTable(oppHandGroup, initCard, gameMultiplayerScreen.mapWidth, cardWidth, false);
+                                        if (getWildSuit() != null){
+                                            suitGroup.removeActor(suitGroup.getChildren().get(0));
+                                        }
+                                        setWildSuit(null);
                                         if(picked.rank == Rank.EIGHT && !isGameOver()){
-                                            Suit selectedSuit = computerPlayer.chooseSuit(oppHand);
+                                            Suit selectedSuit = computerPlayer.chooseSuit(message);
                                             setWildSuit(selectedSuit);
                                             SuitIcon suit = new SuitIcon();
-                                            suit.createGraphicIcon(selectedSuit, gameScreen.mapWidth / 2 + 120f, (gameScreen.mapHeight / 2) + 50f);
+                                            suit.createGraphicIcon(selectedSuit, gameMultiplayerScreen.mapWidth / 2 + 120f, (gameMultiplayerScreen.mapHeight / 2) + 50f);
                                             suitGroup.addActor(suit);
-                                            gameScreen.mainStage.addActor(suitGroup);
+                                            gameMultiplayerScreen.mainStage.addActor(suitGroup);
                                             Gdx.app.log("Selected Suit: ",selectedSuit.name());
-                                        }
-                                        if (card.rank == Rank.TWO){
-                                            cardsToDrawRankTwo += 2;
+                                        }else if (card.rank == Rank.TWO){
                                             if (!hasCardInMoves(playerHand, card) || isGameOver()) {
-                                                drawCardToPlayer(cardsToDrawRankTwo);
                                                 cardsToDrawRankTwo = 0;
+                                            }else {
+                                                cardsToDrawRankTwo += 2;
                                             }
                                         }else if (card.rank == Rank.FOUR){
-                                            cardsToDrawRankFour += 4;
                                             if (!hasCardInMoves(playerHand, card) || isGameOver()) {
                                                 if (!isGameOver()) {
-                                                    Suit selectedSuit = computerPlayer.chooseSuit(oppHand);
+                                                    Suit selectedSuit = computerPlayer.chooseSuit(message);
                                                     setWildSuit(selectedSuit);
                                                     SuitIcon suit = new SuitIcon();
-                                                    suit.createGraphicIcon(selectedSuit, gameScreen.mapWidth / 2 + 120f, (gameScreen.mapHeight / 2) + 50f);
+                                                    suit.createGraphicIcon(selectedSuit, gameMultiplayerScreen.mapWidth / 2 + 120f, (gameMultiplayerScreen.mapHeight / 2) + 50f);
                                                     suitGroup.addActor(suit);
-                                                    gameScreen.mainStage.addActor(suitGroup);
+                                                    gameMultiplayerScreen.mainStage.addActor(suitGroup);
                                                     Gdx.app.log("Selected Suit: ", selectedSuit.name());
                                                 }
-                                                drawCardToPlayer(cardsToDrawRankFour);
                                                 cardsToDrawRankFour = 0;
+                                            }else {
+                                                cardsToDrawRankFour += 4;
                                             }
+                                        }
+                                        if (isChangedTurn){
+                                            changeTurn();
                                         }
                                         if (darkInvalidMoves) {
                                             darkInvalidMoves(playerHandGroup);
@@ -335,13 +403,18 @@ public class GameManager {
                     );
                 }
             }
-        }else{
-            drawCardToComputer(oppHand, 1);
+        }else if (action.startsWith("DC1#")){
+            drawCardToComputerFromMessage(1, message);
+        }else if (action.startsWith("DC")){
+            int index = message.indexOf( '#' );
+            String ncsString = message.substring(2,index);
+            int ncs =  Integer.valueOf(ncsString);
+            drawCardToPlayerFromMessage(ncs, message);
         }
     }
 
-    public void drawCardToComputer(List<Card> hand, int numberCards){
-        //Gdx.app.log("drawCardToComputer", "");
+    public void drawCardToComputerFromMessage(int numberCards, String message){
+        Gdx.app.log("drawCard", "");
         List<Card> cardOppHandList = new LinkedList<Card>();
         for (int i=1; i<=numberCards; i++) {
             //If the deck is empty, we re-shuffle all but the first card in the discard pile
@@ -349,44 +422,91 @@ public class GameManager {
             if(deck.isEmpty()){
                 reshuffleCard();
             }
-            CardManager.draw(deck, hand);
-            final Card cardOppHand = hand.get(0);
+            final Card cardOppHand = getComputerPlay(i, message);
+            oppHand.add(cardOppHand);
+            cardOppHand.createGraphicCard(cardWidth, cardHeight, gameMultiplayerScreen.mapWidth / 2, gameMultiplayerScreen.mapHeight / 2, "back");
             cardOppHandList.add(cardOppHand);
-            cardOppHand.createGraphicCard(cardWidth, cardHeight, gameScreen.mapWidth / 2, gameScreen.mapHeight / 2, "back");
         }
-        drawAndDistributeCards(oppHandGroup, cardOppHandList, initCard, gameScreen.mapWidth, cardWidth, false, false);
-        Card topDiscard = getTopOfDiscard();
-        if ((((topDiscard.rank == Rank.TWO) || (topDiscard.rank == Rank.FOUR)) && (!hasValidMove(hand))) |
-                (!((topDiscard.rank == Rank.TWO) || (topDiscard.rank == Rank.FOUR)) && (!hasValidMove(cardOppHandList))) ){
+        drawAndDistributeCards(oppHandGroup, cardOppHandList, initCard, gameMultiplayerScreen.mapWidth, cardWidth, false, false);
+        if (isChangedTurn){
+            changeTurn();
+        }
+    }
+
+    public void drawCardToComputer(int numberCards){
+        //Gdx.app.log("drawCardToComputer", "");
+        List<Card> cardOppHandList = new LinkedList<Card>();
+        messageToSend = new StringBuilder("DC" + numberCards);
+        messageToSend.append("#");
+        for (int i=1; i<=numberCards; i++) {
+            //If the deck is empty, we re-shuffle all but the first card in the discard pile
+            //  back into the deck
+            if(deck.isEmpty()){
+                reshuffleCard();
+            }
+            CardManager.draw(deck, oppHand);
+            final Card cardOppHand = oppHand.get(0);
+            messageToSend.append(cardOppHand.suit.ordinal() + ",");
+            messageToSend.append(cardOppHand.rank.ordinal() + ";");
+            cardOppHandList.add(cardOppHand);
+            cardOppHand.createGraphicCard(cardWidth, cardHeight, gameMultiplayerScreen.mapWidth / 2, gameMultiplayerScreen.mapHeight / 2, "back");
+        }
+        drawAndDistributeCards(oppHandGroup, cardOppHandList, initCard, gameMultiplayerScreen.mapWidth, cardWidth, false, false);
+        messageToSend.append("@");
+        this.gameMultiplayerScreen.game.playServices.sendReliableMessage(messageToSend.toString());
+    }
+
+    public void drawCardToPlayerFromMessage(int numberCards, String message){
+        Gdx.app.log("drawCardToPlayer", "");
+        List<Card> cardList = new LinkedList<Card>();
+        for (int i=1;i<=numberCards;i++) {
+            if(deck.isEmpty()){
+                reshuffleCard();
+            }
+            Card card = getComputerPlay(i, message);
+            playerHand.add(card);
+            card.createGraphicCard(cardWidth, cardHeight, gameMultiplayerScreen.mapWidth / 2, gameMultiplayerScreen.mapHeight / 2, "back");
+            card.addListener(cardListner);
+            cardList.add(card);
+        }
+
+        drawAndDistributeCards(playerHandGroup, cardList, initCard, gameMultiplayerScreen.mapWidth, cardWidth, darkInvalidMoves, true);
+        if (isChangedTurn){
             changeTurn();
         }
     }
 
     public void drawCardToPlayer(int numberCards){
-        //Gdx.app.log("drawCardToPlayer", "");
+        Gdx.app.log("drawCardToPlayer", "");
         List<Card> cardList = new LinkedList<Card>();
+        StringBuilder messageToSend = new StringBuilder("DC" + numberCards);
         for (int i=1;i<=numberCards;i++) {
             if(deck.isEmpty()){
                 reshuffleCard();
             }
             Card card = getTopOfDeck();
             CardManager.draw(deck, playerHand, 1);
-            card.createGraphicCard(cardWidth, cardHeight, gameScreen.mapWidth / 2, gameScreen.mapHeight / 2, "back");
+            card.createGraphicCard(cardWidth, cardHeight, gameMultiplayerScreen.mapWidth / 2, gameMultiplayerScreen.mapHeight / 2, "back");
             card.addListener(cardListner);
             cardList.add(card);
+
+            messageToSend.append("#");
+            messageToSend.append(card.suit.ordinal() + ",");
+            messageToSend.append(card.rank.ordinal() + ";");
+
         }
-        drawAndDistributeCards(playerHandGroup, cardList, initCard, gameScreen.mapWidth, cardWidth, darkInvalidMoves, true);
+        drawAndDistributeCards(playerHandGroup, cardList, initCard, gameMultiplayerScreen.mapWidth, cardWidth, darkInvalidMoves, true);
         Card topDiscard = getTopOfDiscard();
         if ((((topDiscard.rank == Rank.TWO) || (topDiscard.rank == Rank.FOUR)) && (!hasValidMove(playerHand))) |
                 (!((topDiscard.rank == Rank.TWO) || (topDiscard.rank == Rank.FOUR)) && (!hasValidMove(cardList))) ){
+            messageToSend.append("@");
             changeTurn();
         }
+        this.gameMultiplayerScreen.game.playServices.sendReliableMessage(messageToSend.toString());
     }
 
     private void reshuffleCard(){
         Gdx.app.log("reshuffleCard", "");
-        //List<Card> allButTop = discardPile.subList(0, discardPile.size() - 1);
-        //deck.addAll(allButTop);
         while(discardPile.size() > 1){
             Rank rank = discardPile.get(1).rank;
             Suit suit = discardPile.get(1).suit;
@@ -399,7 +519,7 @@ public class GameManager {
     }
 
     public void distributeCardsOnTable(Group cardsGroup, float initX, float mapWidth, float cardWidth, boolean darkInvalideMoves){
-        //Gdx.app.log("distributeCardsOnTable", "");
+        Gdx.app.log("distributeCardsOnTable", "");
         int numberCards = cardsGroup.getChildren().size;
         float distanceCardX = (mapWidth * 0.8f) / numberCards;
         initX = initX + (distanceCardX / 2) - (cardWidth / 2);
@@ -415,7 +535,7 @@ public class GameManager {
 
     private void drawAndDistributeCards(final Group cardsGroup, final List<Card> cardsToAdd, float initX, float mapWidth, float cardWidth,
                                         final boolean darkInvalideMoves, final boolean isPlayer){
-        //Gdx.app.log("drawAndDistributeCards", "");
+        Gdx.app.log("drawAndDistributeCards", "");
         int numberCards = cardsGroup.getChildren().size + cardsToAdd.size();
         float distanceCardX = (mapWidth * 0.8f) / numberCards;
         initX = initX + (distanceCardX / 2) - (cardWidth / 2);
@@ -559,10 +679,34 @@ public class GameManager {
     public Suit getWildSuit(){ return wildSuit; }
     public void setWildSuit(Suit suit){ wildSuit = suit ;}
     public void changeTurn(){ playerTurn = !playerTurn; }
-
-    public void logAllCards(List<Card> cards){
-        for (Card card:cards){
-            Gdx.app.log("Card: ", card.suit.name() + " " + card.rank.name());
+    public String createMessage(){
+        StringBuilder messageToSend = new StringBuilder("*");
+        String turn = (isPlayerTurn()?"P":"O");
+        messageToSend.append(turn);
+        messageToSend.append("#");
+        for (Card card:playerHand){
+            messageToSend.append(card.suit.ordinal() + ",");
+            messageToSend.append(card.rank.ordinal() + ";");
         }
+
+        messageToSend.append("#");
+        for (Card card:oppHand){
+            messageToSend.append(card.suit.ordinal() + ",");
+            messageToSend.append(card.rank.ordinal() + ";");
+        }
+
+        messageToSend.append("#");
+        for (Card card:deck){
+            messageToSend.append(card.suit.ordinal() + ",");
+            messageToSend.append(card.rank.ordinal() + ";");
+        }
+
+        messageToSend.append("#");
+        for (Card card:discardPile){
+            messageToSend.append(card.suit.ordinal() + ",");
+            messageToSend.append(card.rank.ordinal() + ";");
+        }
+
+        return messageToSend.toString();
     }
 }

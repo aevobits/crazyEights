@@ -2,4 +2,5 @@
 <resources>
     <string name="adView">1234</string>
     <string translatable="false" name="banner_ad_unit_id_test">ca-app-pub-3940256099942544/6300978111</string>
+    <string translatable="false" name="app_id">430786970560</string>
 </resources>

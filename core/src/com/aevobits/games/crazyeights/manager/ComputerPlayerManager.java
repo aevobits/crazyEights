@@ -14,7 +14,7 @@ import java.util.Random;
 
 public class ComputerPlayerManager {
 
-    GameManager gameManager;
+    private GameManager gameManager;
 
     public ComputerPlayerManager(GameManager gameManager) {
         this.gameManager = gameManager;
@@ -25,10 +25,10 @@ public class ComputerPlayerManager {
      * @param hand
      * @return the card to play, or null if no valid play
      */
-    public Card selectPlay(List<Card> hand){
+    Card selectPlay(List<Card> hand){
         List<Card> validMoves = new ArrayList<Card>();
         for(Card card: hand){
-            if(gameManager.isValidMove(card)){
+            if(gameManager.isValidMove(card, gameManager.getOppHand())){
                 validMoves.add(card);
             }
         }
@@ -57,7 +57,7 @@ public class ComputerPlayerManager {
         }
     }
 
-    public Card.Suit chooseSuit(List<Card> hand){
+    Card.Suit chooseSuit(List<Card> hand){
         int numHearts, numSpades, numClubs, numDiamonds;
         numHearts = numSpades = numClubs = numDiamonds = 0;
         for(Card card : hand){

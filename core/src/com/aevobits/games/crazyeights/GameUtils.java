@@ -59,7 +59,11 @@ public class GameUtils
     }
 
     public static float randomFloatInRange(float min, float max){
-        return min + (new Random().nextFloat() * (max - min));
+        float value = 0f;
+        while (value <= 1f || value >= 6f) {
+            value =  min + (new Random().nextFloat() * (max - min));
+        }
+        return value;
     }
 
 }

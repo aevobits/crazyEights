@@ -15,9 +15,35 @@ android {
         instrumentTest.setRoot('tests')
     }
     defaultConfig {
-        applicationId "com.aevobits.games"
+        applicationId "com.aevobits.games.crazyeights"
         minSdkVersion 9
         targetSdkVersion 25
+    }
+    signingConfigs {
+        release {
+            storeFile file("/home/vito/.android/release.keystore")
+            storePassword "aloha1973"
+            keyAlias "release.keystore"
+            keyPassword "aloha1973"
+        }
+        debug {
+            storeFile file("/home/vito/.android/debug.keystore")
+            storePassword "android"
+            keyAlias "androiddebugkey"
+            keyPassword "android"
+        }
+
+    }
+    buildTypes {
+        release {
+            //minifyEnabled true
+            //proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            signingConfig signingConfigs.release
+
+        }
+        debug {
+            signingConfig signingConfigs.debug
+        }
     }
 }
 

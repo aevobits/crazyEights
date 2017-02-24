@@ -16,7 +16,7 @@ allprojects {
     apply plugin: "eclipse"
     apply plugin: "idea"
 
-    version = '1.0'
+    version = '0.0.1-beta'
     ext {
         appName = "Crazy Eights"
         gdxVersion = '1.9.4'
@@ -76,7 +76,9 @@ project(":android") {
         natives "com.badlogicgames.gdx:gdx-freetype-platform:$gdxVersion:natives-x86_64"
         compile "com.badlogicgames.gdx:gdx-controllers:$gdxVersion"
         compile "com.badlogicgames.gdx:gdx-controllers-android:$gdxVersion"
-        compile 'com.google.android.gms:play-services-ads:9.2.1'
+        compile 'com.google.android.gms:play-services-ads:9.2.0'
+        //compile 'com.google.android.gms:play-services-games:8.4.0'
+        compile project(':libraries:BaseGameUtils')
     }
 }
 

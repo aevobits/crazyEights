@@ -10,9 +10,12 @@ import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.scenes.scene2d.ui.Table;
 import com.badlogic.gdx.utils.viewport.FitViewport;
 
+import java.util.LinkedList;
+import java.util.Queue;
+
 public abstract class BaseScreen implements Screen, InputProcessor
 {
-    protected BaseGame game;
+    public BaseGame game;
 
     public Stage mainStage;
     public Stage uiStage;
@@ -23,10 +26,33 @@ public abstract class BaseScreen implements Screen, InputProcessor
     public final int viewHeight = 800;
 
     private boolean paused;
+    public Queue<String> messageReceived = new LinkedList<String>();
 
     public BaseScreen(BaseGame g)
     {
-        game = g;
+        this.game = g;
+
+        mainStage = new Stage( new FitViewport(viewWidth, viewHeight) );
+        uiStage   = new Stage( new FitViewport(viewWidth, viewHeight) );
+
+        uiTable = new Table();
+        uiTable.setFillParent(true);
+        uiStage.addActor(uiTable);
+
+        paused = false;
+
+        InputMultiplexer im = new InputMultiplexer(this, uiStage, mainStage);
+        Gdx.input.setInputProcessor( im );
+
+        create();
+    }
+
+    public BaseScreen(BaseGame g, String message)
+    {
+        this.game = g;
+        if (message != null){
+            messageReceived.add(message);
+        }
 
         mainStage = new Stage( new FitViewport(viewWidth, viewHeight) );
         uiStage   = new Stage( new FitViewport(viewWidth, viewHeight) );

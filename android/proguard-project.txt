@@ -20,7 +20,7 @@
 #}
 
 -verbose
-
+-dontwarn com.badlogic.gdx.jnigen.BuildTarget
 -dontwarn android.support.**
 -dontwarn com.badlogic.gdx.backends.android.AndroidFragmentApplication
 -dontwarn com.badlogic.gdx.utils.GdxBuild

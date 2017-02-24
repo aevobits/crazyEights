@@ -11,9 +11,9 @@ import java.util.Random;
  * Created by vito on 15/11/16.
  */
 
-public class CardManager {
+class CardManager {
 
-    public static List<Card> getSortedDeck(){
+    private static List<Card> getSortedDeck(){
         List<Card> ret = new LinkedList<Card>();
         for(Card.Suit suit : Card.Suit.values()){
             for(Card.Rank rank : Card.Rank.values()){
@@ -23,16 +23,16 @@ public class CardManager {
         return ret;
     }
 
-    public static List<Card> getShuffledDeck(){
+    static List<Card> getShuffledDeck(){
         List<Card> ret = getSortedDeck();
         Collections.shuffle(ret, new Random());
         return ret;
     }
 
-    public static void draw(List<Card> from, List<Card> to){
+    static void draw(List<Card> from, List<Card> to){
         draw(from, to, 1);
     }
-    public static boolean draw(List<Card> from, List<Card> to, int count){
+    static boolean draw(List<Card> from, List<Card> to, int count){
         if(from.size() < count){
             return false;
         }
@@ -59,6 +59,44 @@ public class CardManager {
             }
         }
         return true;
+    }
+
+    public static void dealDebug(List<Card> deck, List<Card> oppHand, List<Card> playerHand){
+
+        oppHand.add(new Card(Card.Suit.CLUBS, Card.Rank.FOUR));
+        oppHand.add(new Card(Card.Suit.CLUBS, Card.Rank.EIGHT));
+        oppHand.add(new Card(Card.Suit.DIAMONDS, Card.Rank.SEVEN));
+
+        playerHand.add(new Card(Card.Suit.HEARTS, Card.Rank.FOUR));
+        playerHand.add(new Card(Card.Suit.DIAMONDS, Card.Rank.EIGHT));
+        playerHand.add(new Card(Card.Suit.CLUBS, Card.Rank.ACE));
+
+        int lenght = deck.size();
+        for (int i = 0; i < lenght;){
+            boolean found = false;
+            for (Card cardOppHand:oppHand){
+                if (cardOppHand.rank == deck.get(i).rank &&
+                        cardOppHand.suit == deck.get(i).suit){
+                    deck.remove(i);
+                    found = true;
+                    lenght--;
+                }
+            }
+            if (!found) {
+                for (Card cardPlayerHand : playerHand) {
+                    if (cardPlayerHand.rank == deck.get(i).rank &&
+                            cardPlayerHand.suit == deck.get(i).suit){
+                        deck.remove(i);
+                        found = true;
+                        lenght--;
+                    }
+                }
+            }
+            if (!found){
+                i++;
+            }
+        }
+
     }
 
     /**
