@@ -56,8 +56,10 @@ public class GameManager {
     private float initCard;
     private float initCardY;
     private float distanceCardX;
-    private float cardWidth = 110;
-    private float cardHeight = 160;
+    private float cardWidth = 80;
+    private float cardHeight = 115;
+    private float cardPlayerWidth = 110;
+    private float cardPlayerHeight = 160;
 
     public int cardsToDrawRankTwo;
     public int cardsToDrawRankFour;
@@ -74,7 +76,7 @@ public class GameManager {
         computerPlayer = new ComputerPlayerManager(this);
         playerData = PlayerDataManager.getInstance();
         this.gameScreen = gameScreen;
-        perHand = 3;
+        perHand = 8;
         cardsToDrawRankTwo = 0;
         cardsToDrawRankFour = 0;
         chooseSuitRunning = false;
@@ -92,8 +94,8 @@ public class GameManager {
      */
     public void startGame(){
         CardManager.reshuffle(deck, playerHand, oppHand, discardPile);
-        //CardManager.deal(deck, perHand, playerHand, oppHand);
-        CardManager.dealDebug(deck, playerHand, oppHand);
+        CardManager.deal(deck, perHand, playerHand, oppHand);
+        //CardManager.dealDebug(deck, playerHand, oppHand);
 
         CardManager.draw(deck, discardPile);
         //Make sure we don't start with an 8
@@ -138,11 +140,12 @@ public class GameManager {
         this.gameScreen.mainStage.addActor(cardBack);
 
         float initCardX = initCard + (distanceCardX / 2) - (cardWidth / 2);
+        float initCardPlayerX = initCard + (distanceCardX / 2) - (cardPlayerWidth / 2);
         float delay = 2.5f;
         CardBackAnimated cardBackAnimated = new CardBackAnimated();
         for (int i = 0; i < perHand; i++) {
             //cardBackAnimated.createGraphicCard(cardWidth, cardHeight, gameScreen.mapWidth / 2, gameScreen.mapHeight / 2);
-            //cardBackAnimated.setZIndex(1001);
+            //cardBackAnimated.setZIndex(100p1);
             //cardBackAnimated.animateCard();
             //cardBackAnimated.setActiveAnimation("flip");
             //cardBackAnimated.addActionBase(Actions.delay(delay+=0.4f));
@@ -151,7 +154,10 @@ public class GameManager {
             card.createGraphicCard(cardWidth, cardHeight, gameScreen.mapWidth / 2, gameScreen.mapHeight / 2, "back");
             card.addActionBase(Actions.sequence(
                             Actions.delay(delay+=0.5f),
-                            Actions.moveTo(initCardX, 70f, 0.5f, Interpolation.exp10),
+                            Actions.parallel(
+                                    Actions.moveTo(initCardPlayerX, 60f, 0.5f, Interpolation.exp10),
+                                    Actions.sizeTo(cardPlayerWidth, cardPlayerHeight, 0.5f, Interpolation.exp10)
+                            ),
                             run(new Runnable(){
                                     @Override
                                     public void run() {
@@ -193,13 +199,16 @@ public class GameManager {
                         playerHandGroup.removeActor(card);
                         discadPileGroup.addActor(card);
                         card.addActionBase(Actions.sequence(
-                                Actions.rotateBy(GameUtils.randomFloatInRange(-15f, 15f)),
-                                Actions.moveTo(topDiscardX + GameUtils.randomFloatInRange(-20f, 20f), topDiscardY + GameUtils.randomFloatInRange(-20f, 20f), 0.01f, Interpolation.exp10),
+                                Actions.rotateBy(GameUtils.randomFloatInRange(-30f, 30f)),
+                                Actions.parallel(
+                                        Actions.moveTo(topDiscardX + GameUtils.randomFloatInRange(-80f, 80f), topDiscardY + GameUtils.randomFloatInRange(-80f, 80f), 0.01f, Interpolation.linear),
+                                        Actions.sizeTo(cardWidth, cardHeight, 0.01f, Interpolation.linear)
+                                ),
                                 run(new Runnable(){
                                         @Override
                                         public void run() {
                                             card.removeListener(cardListner);
-                                            distributeCardsOnTable(playerHandGroup, initCard, gameScreen.mapWidth, cardWidth, darkInvalidMoves);
+                                            distributeCardsOnTable(playerHandGroup, initCard, gameScreen.mapWidth, cardPlayerWidth, darkInvalidMoves);
                                             if (card.rank == Rank.EIGHT && !isGameOver()) {
                                                 chooseSuitRunning = true;
                                                 gameScreen.chooseSuit.setVisible(true);
@@ -244,6 +253,7 @@ public class GameManager {
             oppHandGroup.addActor(cardOppHand);
             Gdx.app.log("card",cardOppHand.suit.name() + " - " + cardOppHand.rank.name());
             initCardX += distanceCardX;
+            initCardPlayerX += distanceCardX;
         }
         this.gameScreen.mainStage.addActor(playerHandGroup);
         this.gameScreen.mainStage.addActor(oppHandGroup);
@@ -287,9 +297,9 @@ public class GameManager {
                     card.addActionBase(Actions.sequence(
                             Actions.delay(1f),
                             Actions.parallel(
-                            Actions.rotateBy(GameUtils.randomFloatInRange(-15f, 15f), 0.5f, Interpolation.exp10),
+                            Actions.rotateBy(GameUtils.randomFloatInRange(-30f, 30f), 0.5f, Interpolation.exp10),
                             Actions.sequence(
-                            Actions.moveTo(topDiscardX + GameUtils.randomFloatInRange(-20f, 20f), topDiscardY + GameUtils.randomFloatInRange(-20f, 20f), 0.5f , Interpolation.exp10),
+                            Actions.moveTo(topDiscardX + GameUtils.randomFloatInRange(-80f, 80f), topDiscardY + GameUtils.randomFloatInRange(-80f, 80f), 0.5f , Interpolation.exp10),
                             run(new Runnable(){
                                     @Override
                                     public void run() {
@@ -375,7 +385,7 @@ public class GameManager {
             card.addListener(cardListner);
             cardList.add(card);
         }
-        drawAndDistributeCards(playerHandGroup, cardList, initCard, gameScreen.mapWidth, cardWidth, darkInvalidMoves, true);
+        drawAndDistributeCards(playerHandGroup, cardList, initCard, gameScreen.mapWidth, cardPlayerWidth, darkInvalidMoves, true);
         Card topDiscard = getTopOfDiscard();
         if ((((topDiscard.rank == Rank.TWO) || (topDiscard.rank == Rank.FOUR)) && (!hasValidMove(playerHand))) |
                 (!((topDiscard.rank == Rank.TWO) || (topDiscard.rank == Rank.FOUR)) && (!hasValidMove(cardList))) ){
@@ -416,9 +426,15 @@ public class GameManager {
     private void drawAndDistributeCards(final Group cardsGroup, final List<Card> cardsToAdd, float initX, float mapWidth, float cardWidth,
                                         final boolean darkInvalideMoves, final boolean isPlayer){
         //Gdx.app.log("drawAndDistributeCards", "");
+        float cardHeightTo = cardWidth;
         int numberCards = cardsGroup.getChildren().size + cardsToAdd.size();
         float distanceCardX = (mapWidth * 0.8f) / numberCards;
-        initX = initX + (distanceCardX / 2) - (cardWidth / 2);
+        if (isPlayer){
+            initX = initX + (distanceCardX / 2) - (cardPlayerWidth / 2);
+            cardHeightTo = cardPlayerHeight;
+        }else {
+            initX = initX + (distanceCardX / 2) - (cardWidth / 2);
+        }
         for (Actor cardItem: cardsGroup.getChildren()){
             final BaseActor card = (BaseActor) cardItem;
             card.addActionBase(Actions.moveTo(initX, card.getY(), 0.3f, Interpolation.exp10));
@@ -426,11 +442,14 @@ public class GameManager {
         }
         float positionY = cardsGroup.getChildren().first().getY();
         float delay = 0f;
+
         for (final Card cardToAdd: cardsToAdd) {
             cardToAdd.addActionBase(Actions.sequence(
-                    //Actions.delay(0.5f),
                     Actions.delay(delay+=0.5f),
-                    Actions.moveTo(initX, positionY, 0.5f, Interpolation.exp10),
+                    Actions.parallel(
+                            Actions.moveTo(initX, positionY, 0.5f, Interpolation.exp10),
+                            Actions.sizeTo(cardWidth, cardHeightTo, 0.5f, Interpolation.linear)
+                    ),
                     run(new Runnable(){
                             @Override
                             public void run() {

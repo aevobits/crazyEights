@@ -42,7 +42,7 @@ public class PlayerDataManager {
         this.playerScore = 0;
         this.oppScore = 0;
         this.round = 1;
-        this.playerWinnerGame = false;
+        //this.playerWinnerGame = false;
         this.oppWinnerGame = false;
         this.playerWinnerHand = false;
     }

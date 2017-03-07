@@ -33,7 +33,7 @@ import static com.badlogic.gdx.scenes.scene2d.actions.Actions.run;
 public class GameMultiplayerScreen extends BaseScreen {
 
     private BaseActor background;
-    private GameMultiplayerManager gameManager;
+    public GameMultiplayerManager gameManager;
     public Label playerLabel;
     public Label computerLabel;
     public Label playerScoreLabel;
@@ -46,6 +46,7 @@ public class GameMultiplayerScreen extends BaseScreen {
     public Table playerLabelTable;
     private boolean isShowedWinDialog;
     private int score;
+    private String[] participantNames;
 
     // game world dimensions
     public final int mapWidth = 480;
@@ -221,9 +222,14 @@ public class GameMultiplayerScreen extends BaseScreen {
         gameManager.startGame();
         gameManager.drawTable();
 
+        participantNames = game.playServices.getParticipantNames();
 
-        playerLabel	= new Label("Player", game.defaultSkin, "collegia15");
-        computerLabel = new Label("Computer", game.defaultSkin, "collegia15");
+        if (participantNames == null){
+            participantNames[0] = "Computer0";
+        }
+
+        playerLabel	= new Label("You", game.defaultSkin, "collegia15");
+        computerLabel = new Label(participantNames[0], game.defaultSkin, "collegia15");
 
         BaseActor playerCards = new BaseActor();
         playerCards.setTexture( new Texture(Gdx.files.internal("cards.png")) );
@@ -322,7 +328,7 @@ public class GameMultiplayerScreen extends BaseScreen {
                 }
                 //game.actionResolver.showToast("Ciao come stai?");
                 Gdx.app.log("GameScreen", "isSignedIn: " + game.playServices.isSignedIn() + ".");
-
+                break;
             case Desktop:
                 // desktop specific code
             case WebGL:
@@ -373,9 +379,9 @@ public class GameMultiplayerScreen extends BaseScreen {
         isShowedWinDialog = true;
         Label label;
         if (gameManager.playerData.isPlayerWinnerGame()) {
-            label = new Label(game.myBundle.get("youWon") + " " + game.myBundle.get("hand") + "\n" + game.myBundle.get("score") + ": " + score, game.defaultSkin.get("exo35", Label.LabelStyle.class));
+            label = new Label(game.myBundle.get("youWon") + " " + game.myBundle.get("game") + "\n" + game.myBundle.get("score") + ": " + score, game.defaultSkin.get("exo35", Label.LabelStyle.class));
         } else {
-            label = new Label(game.myBundle.get("computerWon") + " " + game.myBundle.get("hand") + "\n" + game.myBundle.get("score") + ": " + score, game.defaultSkin.get("exo35", Label.LabelStyle.class));
+            label = new Label(participantNames[0] + "\n" + game.myBundle.get("won") + " " + game.myBundle.get("game") + "\n" + game.myBundle.get("score") + ": " + score, game.defaultSkin.get("exo35", Label.LabelStyle.class));
         }
         label.setWrap(true);
         label.setAlignment(Align.center);
@@ -384,8 +390,21 @@ public class GameMultiplayerScreen extends BaseScreen {
                     protected void result (Object object) {
                         System.out.println("Chosen: " + object);
                         if (object.equals(true)){
-                            gameManager.playerData.resetGameData();
-                            game.setScreen(new GameMultiplayerScreen(game, ""));
+                            switch(Gdx.app.getType()) {
+                                case Android:
+                                    if (gameManager.playerData.isPlayerWinnerGame()) {
+                                        gameManager.playerData.resetGameData();
+                                        game.setScreen(new GameMultiplayerScreen(game, null));
+                                    }
+                                    game.playServices.showOrLoadInterstitial();
+                                    break;
+                                case Desktop:
+                                    gameManager.playerData.resetGameData();
+                                    game.setScreen(new GameScreen(game));
+                                    break;
+                                case WebGL:
+                                    /// HTML5 specific code
+                            }
                         }else {
                             Gdx.app.exit();
                         }
@@ -449,7 +468,7 @@ public class GameMultiplayerScreen extends BaseScreen {
         if (gameManager.playerData.isPlayerWinnerHand()) {
             labelScore = new Label(game.myBundle.get("youWon") + " " + game.myBundle.get("hand") + "\n" + game.myBundle.get("score") + ": " + score, game.defaultSkin.get("exo35", Label.LabelStyle.class));
         } else {
-            labelScore = new Label(game.myBundle.get("computerWon") + " " + game.myBundle.get("hand") + "\n" + game.myBundle.get("score") + ": " + score, game.defaultSkin.get("exo35", Label.LabelStyle.class));
+            labelScore = new Label(participantNames[0] + "\n" + game.myBundle.get("won") + " " + game.myBundle.get("hand") + "\n" + game.myBundle.get("score") + ": " + score, game.defaultSkin.get("exo35", Label.LabelStyle.class));
         }
         labelScore.setWrap(true);
         labelScore.setAlignment(Align.center);
@@ -474,7 +493,19 @@ public class GameMultiplayerScreen extends BaseScreen {
                 run(new Runnable(){
                         @Override
                         public void run() {
-                            game.setScreen(new GameMultiplayerScreen(game, ""));
+                            switch(Gdx.app.getType()) {
+                                case Android:
+                                    if (gameManager.playerData.isPlayerWinnerHand()) {
+                                        //game.setScreen(new GameMultiplayerScreen(game, null));
+                                        game.playServices.startMultiplayerGame(null);
+                                    }
+                                    game.playServices.showOrLoadInterstitial();
+                                    break;
+                                case Desktop:
+                                    break;
+                                case WebGL:
+                                    /// HTML5 specific code
+                            }
                         }
                     }
                 )

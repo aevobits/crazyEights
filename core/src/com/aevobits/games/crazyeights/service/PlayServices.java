@@ -9,6 +9,7 @@ import com.aevobits.games.crazyeights.BaseGame;
 public interface PlayServices {
     void signIn();
     void signOut();
+    String getNamePlayer();
     void rateGame();
     void unlockAchievement();
     void submitScore(int highScore);
@@ -16,7 +17,9 @@ public interface PlayServices {
     void showScore();
     boolean isSignedIn();
     void quickStartGame(BaseGame game);
+    void startMultiplayerGame(String message);
     void recordVideo();
     void sendReliableMessage(String messageToSend);
-    void showOrLoadInterstital();
+    void showOrLoadInterstitial();
+    String[] getParticipantNames();
 }

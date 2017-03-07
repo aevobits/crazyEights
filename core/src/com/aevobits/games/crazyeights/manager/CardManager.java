@@ -64,12 +64,12 @@ class CardManager {
     public static void dealDebug(List<Card> deck, List<Card> oppHand, List<Card> playerHand){
 
         oppHand.add(new Card(Card.Suit.CLUBS, Card.Rank.FOUR));
-        oppHand.add(new Card(Card.Suit.CLUBS, Card.Rank.EIGHT));
-        oppHand.add(new Card(Card.Suit.DIAMONDS, Card.Rank.SEVEN));
+        //oppHand.add(new Card(Card.Suit.CLUBS, Card.Rank.EIGHT));
+        //oppHand.add(new Card(Card.Suit.DIAMONDS, Card.Rank.SEVEN));
 
         playerHand.add(new Card(Card.Suit.HEARTS, Card.Rank.FOUR));
-        playerHand.add(new Card(Card.Suit.DIAMONDS, Card.Rank.EIGHT));
-        playerHand.add(new Card(Card.Suit.CLUBS, Card.Rank.ACE));
+        //playerHand.add(new Card(Card.Suit.DIAMONDS, Card.Rank.EIGHT));
+        //playerHand.add(new Card(Card.Suit.CLUBS, Card.Rank.ACE));
 
         int lenght = deck.size();
         for (int i = 0; i < lenght;){

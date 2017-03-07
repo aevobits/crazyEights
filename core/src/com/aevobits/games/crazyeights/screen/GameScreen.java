@@ -449,9 +449,12 @@ public class GameScreen extends BaseScreen {
                         public void run() {
                             switch(Gdx.app.getType()) {
                                 case Android:
-                                    game.playServices.showOrLoadInterstital();
+                                    game.setScreen(new GameScreen(game));
+                                    game.playServices.showOrLoadInterstitial();
+                                    break;
                                 case Desktop:
                                     game.setScreen(new GameScreen(game));
+                                    break;
                                 case WebGL:
                                     /// HTML5 specific code
                             }

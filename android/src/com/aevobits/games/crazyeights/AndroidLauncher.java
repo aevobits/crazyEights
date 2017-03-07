@@ -1,9 +1,6 @@
 package com.aevobits.games.crazyeights;
 
 import android.app.Activity;
-import android.app.AlertDialog;
-import android.content.Context;
-import android.content.DialogInterface;
 import android.content.Intent;
 import android.graphics.Color;
 import android.net.Uri;
@@ -16,20 +13,15 @@ import android.widget.RelativeLayout;
 import android.widget.Toast;
 
 import com.aevobits.games.crazyeights.screen.GameMultiplayerScreen;
-import com.aevobits.games.crazyeights.screen.GameScreen;
 import com.aevobits.games.crazyeights.service.PlayServices;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.backends.android.AndroidApplication;
 import com.badlogic.gdx.backends.android.AndroidApplicationConfiguration;
-import com.badlogic.gdx.graphics.glutils.ShaderProgram;
 import com.google.android.gms.ads.AdListener;
 import com.google.android.gms.ads.AdRequest;
 import com.google.android.gms.ads.AdSize;
 import com.google.android.gms.ads.AdView;
 import com.google.android.gms.ads.InterstitialAd;
-import com.google.android.gms.common.api.BooleanResult;
-import com.google.android.gms.common.api.GoogleApiClient;
-import com.google.android.gms.common.api.ResultCallback;
 import com.google.android.gms.games.Games;
 import com.google.android.gms.games.GamesStatusCodes;
 import com.google.android.gms.games.multiplayer.Invitation;
@@ -42,9 +34,6 @@ import com.google.android.gms.games.multiplayer.realtime.Room;
 import com.google.android.gms.games.multiplayer.realtime.RoomConfig;
 import com.google.android.gms.games.multiplayer.realtime.RoomStatusUpdateListener;
 import com.google.android.gms.games.multiplayer.realtime.RoomUpdateListener;
-import com.google.android.gms.games.multiplayer.turnbased.TurnBasedMatch;
-import com.google.android.gms.games.multiplayer.turnbased.TurnBasedMatchConfig;
-import com.google.android.gms.games.multiplayer.turnbased.TurnBasedMultiplayer;
 import com.google.example.games.basegameutils.GameHelper;
 
 import java.util.ArrayList;
@@ -181,15 +170,20 @@ public class AndroidLauncher extends AndroidApplication implements PlayServices 
 			}
 			@Override
 			public void onAdClosed() {
-				if (crazyEightsGame.getScreen() instanceof GameScreen){
+				/*if (crazyEightsGame.getScreen() instanceof GameScreen){
 					startGame();
 				}else {
-					startMultiplayerGame(null);
-				}
+					if (crazyEightsGame.multiplayerGameScreen.gameManager.playerData.isPlayerWinnerHand()) {
+						startMultiplayerGame(null);
+					}
+					*//*if (!startGameAck) {
+						sendReliableMessage("SNGACK");
+					}*//*
+				}*/
 				Toast.makeText(getApplicationContext(), "Closed Interstitial", Toast.LENGTH_SHORT).show();
 			}
 		});
-		showOrLoadInterstital();
+		showOrLoadInterstitial();
 	}
 
 	private AdView createAdView() {
@@ -235,6 +229,7 @@ public class AndroidLauncher extends AndroidApplication implements PlayServices 
 		super.onStop();
 		gameHelper.onStop();
 	}
+
 
 	@Override
 	protected void onActivityResult(int requestCode, int resultCode, Intent data)
@@ -343,6 +338,12 @@ public class AndroidLauncher extends AndroidApplication implements PlayServices 
 		{
 			Gdx.app.log(TAG, "Log out failed: " + e.getMessage() + ".");
 		}
+	}
+
+	@Override
+	public String getNamePlayer() {
+		//gameHelper.getApiClient().
+		return null;
 	}
 
 	@Override
@@ -685,7 +686,7 @@ public class AndroidLauncher extends AndroidApplication implements PlayServices 
 		if (participantIds != null) {
 			for (String participantId : participantIds) {
 				final String participantName = room.getParticipant(participantId).getDisplayName();
-				Gdx.app.log(TAG, "Participant: " + participantName);
+					Gdx.app.log(TAG, "Participant: " + participantName);
 			}
 		}
 	}
@@ -712,11 +713,11 @@ public class AndroidLauncher extends AndroidApplication implements PlayServices 
 			// We get the message as array of bytes
 			byte[] message = messageToSend.getBytes();
 			// We send the message to all the participants but me
-			final String myId = mRoom.getParticipantId(Games.Players.getCurrentPlayerId(gameHelper.getApiClient()));
+			//final String myId = mRoom.getParticipantId(Games.Players.getCurrentPlayerId(gameHelper.getApiClient()));
 			for (Participant p : participants) {
 				// If the participants is not me
 				final String participantId = p.getParticipantId();
-				if (!myId.equals(participantId)) {
+				if (!mMyId.equals(participantId)) {
 					// We send the message in reliable way
 					Games.RealTimeMultiplayer.sendReliableMessage(gameHelper.getApiClient(), mReliableMessageSentCallback,
 							message, mRoom.getRoomId(), participantId);
@@ -727,7 +728,7 @@ public class AndroidLauncher extends AndroidApplication implements PlayServices 
 		}
 	}
 
-	private void startMultiplayerGame(final String messageReceived){
+	public void startMultiplayerGame(final String messageReceived){
 		Gdx.app.postRunnable(new Runnable() {
 			@Override
 			public void run() {
@@ -754,7 +755,7 @@ public class AndroidLauncher extends AndroidApplication implements PlayServices 
 	}
 
 	@Override
-	public void showOrLoadInterstital() {
+	public void showOrLoadInterstitial() {
 		try {
 			runOnUiThread(new Runnable() {
 				public void run() {
@@ -773,4 +774,19 @@ public class AndroidLauncher extends AndroidApplication implements PlayServices 
 		}
 	}
 
+	@Override
+	public String[] getParticipantNames() {
+		String[] participantNames = null;
+		if (mRoom != null) {
+			participantNames = new String[mRoom.getParticipantIds().size()-1];
+			int i=0;
+			for (String participantId : mRoom.getParticipantIds()) {
+				if (!participantId.equals(mMyId)) {
+					participantNames[i] = mRoom.getParticipant(participantId).getDisplayName();
+					i++;
+				}
+			}
+		}
+		return participantNames;
+	}
 }

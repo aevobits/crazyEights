@@ -1,6 +1,7 @@
 package com.aevobits.games.crazyeights.manager;
 
 import com.aevobits.games.crazyeights.entity.Card;
+import com.badlogic.gdx.scenes.scene2d.Group;
 
 import java.util.List;
 
@@ -36,6 +37,21 @@ class ComputerMultiplayerManager {
         deck.remove(card2);
 
         return card2;
+    }
+
+    void drawReshuffleCard(List<Card> deck, List<Card> discardPile, Group discadPileGroup, String messageReceived){
+
+        String[] tokens = messageReceived.split("#");
+        String cardsToken = tokens[1];
+        String[] cards = cardsToken.split(";");
+
+        for (String cardToken:cards){
+            String[] card = cardToken.split(",");
+            Card card2 = new Card(Card.Suit.values()[Integer.valueOf(card[0])], Card.Rank.values()[Integer.valueOf(card[1])]);
+            deck.add(card2);
+            discardPile.remove(1);
+            discadPileGroup.getChildren().removeIndex(0);
+        }
     }
 
     Card.Suit chooseSuit(String messageReceived){
